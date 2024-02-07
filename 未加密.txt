@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>柒蓝 - Picture display</title>
+  <script src="./js/jquery.min.js"></script>
+
+  <style>
+    * {
+      /*margin: 0;*/
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    h1, h4 {
+      text-align: center;
+      color: #7EA1C4;
+    }
+
+body {
+  text-align: center; /* 将容器内部元素居中对齐 */
+}
+
+.img-container {
+  width: 300px; /* 设置图片容器的宽度 */
+  margin-top: 15px; /* 设置顶部间距 */
+  border-radius: 8px;
+  text-align: center; /* 文字居中 */
+  box-sizing: border-box; /* 盒模型设置为border-box */
+  border: 2px solid #dc61cb; /* 添加绿色边框 */
+  padding: 0px; /* 添加内边距 */
+  position: relative; /* 设置相对定位 */
+}
+#imagesContainer {
+  display: flex;
+  flex-wrap: wrap; /* 允许换行 */
+  justify-content: center; /* 图片左右分布 */
+  align-items: center; /* 水平垂直居中对齐 */
+}
+.image-row {
+  display: flex; /* 使用flex布局 */
+  flex-wrap: wrap; /* 允许换行 */
+  justify-content: flex-start; /* 图片左对齐 */
+  align-items: center; /* 水平居中对齐 */
+}
+
+    .loading-image {
+      width: 100%;
+      height: 100%;
+      background-color: #ccc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .loaded-image {
+      display: none;
+    }
+
+    .pic {
+      width: 100%;
+      height: 300px;
+      cursor: pointer; /* 添加鼠标指针样式，表示可以点击 */
+      /*background-color: 2px solid #dc61cb;*/
+       /*background-image: url('https://img.qlvv.cn/file/64213b65d55eb297b40d0.gif'); /* 设置图片背景 https://img.qlvv.cn/file/985e5f0315da615dac539.gif 
+         background-size: cover; /* 图片将被缩放以完全覆盖整个容器 */
+  background-position: center; /* 图片在容器中居中显示 */
+    max-width: 100%;
+  /*height: auto !important;*/
+  border: 1px solid #dee2e6;
+  /*margin-bottom: 0.75rem;*/
+  margin-right: 0.5em;
+  border-radius:6px;
+  box-shadow: 6px 6px 12px 0px rgba(0,0,0,0.2),0px 0px 8px 0px rgba(0,0,0,0.19);
+    
+    }
+    
+    
+    /* 添加一个用于放大图片的模态框样式 */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  left: 50%; /* 将模态框的左边位置设置为页面宽度的一半 */
+  top: 50%; /* 将模态框的上边位置设置为页面高度的一半 */
+  /*padding-left: 10%;*/
+  transform: translate(-50%, -50%); /* 使用transform属性将模态框向左和向上移动50%，使其居中 */
+  max-width: 100%;
+  max-height: 100%;
+  /*overflow: auto;*/
+  /*background-color: rgb(107 192 254 / 37%);*/
+  padding: 50px 0; /* 添加垂直内边距以使内容垂直居中 */
+}
+
+.modal-content {
+  margin: auto;
+  display: block;
+  max-width: 855px;
+  max-height: 60%;
+  margin-bottom: 1%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+    /* 关闭按钮样式 */
+.close {
+  position: absolute;
+  bottom: -100px; /* 将关闭按钮设置到底部，可以根据需要调整位置 */
+  left: 50%; /* 将关闭按钮水平居中 */
+  transform: translateX(-50%); /* 使用transform属性将关闭按钮向左移动50%，使其水平居中 */
+  color: red;
+  font-size: 155px; /* 根据需要调整字体大小 */
+  cursor: pointer;
+  }
+  
+  
+  
+  </style>
+</head>
+
+<body>
+  <!-- <hr color:"#de1c31"> -->
+  <h1>点击图片查看或长摁保存，不显示就是资源已被删除</h1>
+  <div id="imagesContainer"></div>
+
+  <!-- 添加一个模态框用于放大图片 -->
+  <div id="myModal" class="modal">
+    <span class="close">&times;</span>
+    <img class="modal-content" id="img01">
+  </div>
+
+  <script>
+
+// 获取url中的参数值
+    function getParameterByName(name, url) {
+      if (!url) {
+        url = window.location.href;
+      }
+      name = name.replace(/[\[\]]/g, '\\$&');
+      var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+        results = regex.exec(url);
+      if (!results) {
+        return null;
+      }
+      if (!results[2]) {
+        return '';
+      }
+      return decodeURIComponent(results[2].replace(/\+/g, ' '));
+    }
+
+    // 获取id参数值
+    var id = getParameterByName('id');
+    // 使用QL对参数进行分割
+    var items = id.split('QL');
+
+    // 动态生成img标签并将其添加到容器中
+// 动态生成img标签并将其添加到容器中
+var container = document.getElementById('imagesContainer');
+var itemsCount = items.length;
+var batchSize = 1;
+
+// 创建一个函数，用于批量添加图片到容器中
+function addBatchImages(startIndex) {
+  var endIndex = Math.min(startIndex + batchSize, itemsCount);
+  var row = document.createElement("div");
+  row.className = "image-row";
+
+  for (var i = startIndex; i < endIndex; i++) {
+    var imgContainer = document.createElement("div");
+    imgContainer.className = "img-container";
+    
+    imgContainer.style.display = 'inline-block'; /* 使用 inline-block 布局 */
+
+    var loadingImg = document.createElement("div");
+    loadingImg.className = "loading-image";
+
+    var loadedImg = document.createElement("img");
+    loadedImg.className = "pic";
+    loadedImg.src = "https://i.pixiv.re/" + items[i]; //https://pixiv.yuki.sh/   https://pximg.lolicon.run/   https://sex.nyan.xyz/   https://sex.nyan.xyz/  https://i.pixiv.re/
+    loadedImg.onerror = function() { // 当图片加载失败时触发
+      this.style.display = 'none'; // 隐藏加载失败的图片
+      var defaultSrc = "https://img.qlvv.cn/file/ad3880f3b47a0c6d4d862.png"; // 默认图片的链接
+      this.src = defaultSrc; // 替换图片的src属性为默认图片的链接
+      var index = this.getAttribute("data-index");
+      var id = this.getAttribute("data-id");
+      var textElement = this.nextElementSibling; // 下一个兄弟元素，即存放文字的元素
+      if (id == null) {
+        textElement.textContent = "第 " + index + " 张图加载失败，ID为：null";
+      } else {
+        textElement.textContent = "第 " + index + " 张图加载失败，ID为：" + id;
+      }
+      this.style.display = 'block'; // 显示替换后的默认图片
+    };
+
+    imgContainer.appendChild(loadingImg);
+    imgContainer.appendChild(loadedImg);
+
+    var imageText = document.createElement("h4");
+    imageText.className = "image-text";
+    var url = items[i];
+    var filename = url.substring(url.lastIndexOf('/') + 1);
+    var idMatch = filename.match(/(\d+)_p\d+\.(jpg|png)$/);
+    var id = idMatch ? idMatch[1] : null;
+    loadedImg.setAttribute("data-id", id);
+    loadedImg.setAttribute("data-index", i + 1);
+    if (id == null) {
+      imageText.textContent = "第 " + (i + 1) + " 张图,ID为：null";
+    } else {
+      imageText.textContent = "第 " + (i + 1) + " 张图,ID为：" + id;
+    }
+
+    imgContainer.appendChild(imageText);
+    row.appendChild(imgContainer);
+  }
+
+  container.appendChild(row);
+
+  // 如果还有图片未添加，延迟一段时间后再继续添加下一批图片
+  if (endIndex < itemsCount) {
+    setTimeout(function() {
+      addBatchImages(endIndex);
+    }, 400); // 这里设置延迟的时间，单位为毫秒
+  }
+}
+
+// 调用函数开始添加图片
+addBatchImages(0);
+
+
+
+
+// 更改图片点击事件绑定方式，使用事件委托
+$("#imagesContainer").on("click", "img.pic", function() {
+  var modal = document.getElementById('myModal');
+  var modalImg = document.getElementById("img01");
+  modal.style.display = "block";
+  modalImg.src = this.src;
+});
+
+// 点击关闭按钮或模态框以外的区域时关闭模态框
+$(".close, .modal").click(function(event) {
+  if (event.target === this) {
+    var modal = document.getElementById('myModal');
+    modal.style.display = "none";
+  }
+});
+
+
+
+    
+  </script>
+
+</body>
+
+</html>
+
+ 
